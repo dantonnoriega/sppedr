@@ -1,11 +1,22 @@
 Package: sppedr
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Imports, cleans, and combines different data sources for Chicago Public Schools and Police Departments
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Danton Noriega
+Maintainer: danton.noriega@gmail.com
+Description: Imports, cleans, and combines different data sources for Chicago Public Schools and Police Departments
+License: Creative Commons
 Encoding: UTF-8
 LazyData: true
+Remotes: github::ironholds/poster
+Imports:
+  haven,
+  tidyverse,
+  ggmap
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown
+RoxygenNote: 6.0.1
+VignetteBuilder: knitr
+
