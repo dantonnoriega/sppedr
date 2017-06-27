@@ -66,7 +66,7 @@ get_cps_address_data <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", for
 }
 
 #' get chicago public school data
-#' @inheretParams
+#' @inheritParams get_cps_address_data
 #' @export
 
 get_cps_2008_2016 <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force = FALSE) {
@@ -107,8 +107,8 @@ get_cps_2008_2016 <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force 
 
 }
 
-#' get chicago public school data
-#' @inheretParams
+#' get chicago public school data. REQUIRES DATA CLEANED BY SCRIPT `bin/clean-cps-personnel.sh`.
+#' @inheritParams get_cps_address_data
 #' @export
 
 get_cps_personnel <- function(data_dir = "~/Dropbox/ra-work/spped/RawData/CPS_Personnel/cooked", force = FALSE) {
@@ -120,32 +120,99 @@ get_cps_personnel <- function(data_dir = "~/Dropbox/ra-work/spped/RawData/CPS_Pe
     files <- list.files(data_dir, full.names = TRUE)
 
     # txt and csv
-    txt_files <- files[grepl('\\.txt', basename(files))]
+    txt_files <- files[grepl('\\.txt', basename(files))] %>%
+      .[!grepl('2014', .)]
+    txt_2014 <- files[grepl('\\.txt', basename(files))] %>%
+      .[grepl('2014', .)]
     csv_files <- files[grepl('\\.csv', basename(files))]
+
+    # get data years
+    txt_yrs <- stringr::str_extract(txt_files, '20[01][123890]')
+    csv_yrs <- stringr::str_extract(csv_files, '20[01][56]')
 
     # parse txt
     txt_cols <- c('position_number', 'budget_category', 'unit_number', 'other')
     txt <- txt_files %>%
-      purrr::map(.x = ., .f = readr::read_delim, delim = "|", col_names = txt_cols, trim_ws = TRUE)
+      purrr::map(.x = ., .f = readr::read_delim, delim = "|", col_names = txt_cols, col_type = paste(rep('c', length(txt_cols)), collapse = ""), trim_ws = TRUE) %>% # import everything as character
+      purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, gsub, pattern = '[[:space:]]+', replacement = ' ')) %>% # replace any space pattern with single space
+      purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, tolower))
+
+    # 2014 text
+    cols14 <- c("position_number","unit_number", "unit_name", "other")
+    txt14 <- txt_2014 %>%
+      readr::read_delim(delim = "|", trim_ws = TRUE, col_names = cols14, col_type = paste(rep('c', length(cols14)), collapse = "")) %>%
+      dplyr::mutate_if(is.character, gsub, pattern = '[[:space:]]+', replacement = ' ') %>% # replace any space pattern with single space
+      dplyr::mutate_if(is.character, tolower)
 
     # parse csv
     csv_cols <- c("position_number","unit_number","unit_name","fte","annual_salary","fte_annual_salary","annual_benefit_cost","job_code","job_description","employee_name")
     csv <- csv_files %>%
-      purrr::map(.x = ., .f = readr::read_csv, col_names = csv_cols, col_type = paste(rep('c', length(csv_cols)), collapse = ""), trim_ws = TRUE)
+      purrr::map(.x = ., .f = readr::read_csv, col_names = csv_cols, col_type = paste(rep('c', length(csv_cols)), collapse = ""), trim_ws = TRUE) %>%
+      purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, gsub, pattern = '[[:space:]]+', replacement = ' ')) %>%
+      purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, tolower))
 
-    # table of security officer positions
-    table(do.call(c, sapply(csv, '[[', 'job_description')))
+    # add year variable to datasets so we can stack
+    txt <- purrr::map2(.x = txt, .y = txt_yrs, .f = ~dplyr::mutate(.x, year = .y))
+    csv <- purrr::map2(.x = csv, .y = csv_yrs, .f = ~dplyr::mutate(.x, year = .y))
+    txt14 <- txt14 %>% dplyr::mutate(year = "2014") # year must be character to stack
 
-    return(cps_2008_2016)
+    # stack
+    txt <- dplyr::bind_rows(txt)
+    csv <- dplyr::bind_rows(csv)
+
+    # table of security positions
+    table(csv[['job_description']]) %>% sort(TRUE)
+
+    ## csv security extractions
+    txt[['other']] %>%
+      stringr::str_extract_all('(school)? security ([[:alnum:]]+)', simplify = FALSE) %>%
+      unlist() %>%
+      trimws() %>%
+      table() %>%
+      sort(TRUE)
+
+    # hand compile set of security positions
+    csv_sec <- c("cntrl office security officer", "flex team security officer", "school security officer", "senior school security officer", "security supervisor ii")
+
+    txt_sec <- c("school security aide", "school security officer", "security off", "security supervisor")
+
+    # filter and refine
+    csv <- csv %>%
+      dplyr::filter(job_description %in% csv_sec) %>%
+      dplyr::filter(!is.na(job_description)) %>%
+      dplyr::select(position_number, unit_number, job_description, year)
+
+    v <- paste0('(', paste(txt_sec, collapse = '|'), ')') # pattern collapse
+    txt <- txt %>%
+      dplyr::mutate(job_description = stringr::str_extract(other, v)) %>%
+      dplyr::filter(!is.na(job_description)) %>%
+      dplyr::select(position_number, unit_number, job_description, year)
+
+    v <- paste0('(', paste(csv_sec, collapse = '|'), ')') # pattern collapse
+    txt14 <- txt14 %>%
+      dplyr::mutate(job_description = stringr::str_extract(other, v)) %>%
+      dplyr::filter(!is.na(job_description)) %>%
+      dplyr::select(position_number, unit_number, job_description, year) %>%
+      dplyr::mutate_all(as.character)
+
+    # stack all and summarize
+    cps_personnel <- dplyr::bind_rows(txt, txt14, csv) %>%
+      dplyr::group_by(unit_number, job_description, year) %>%
+      dplyr::summarize(n = n()) %>%
+      dplyr::arrange(year, unit_number, job_description)
+
+    devtools::use_data(cps_personnel, overwrite = TRUE, compress = 'bzip2')
+
+    return(cps_personnel)
 
   } else {
     # check for data
-    rda <- 'data/cps_2008_2016.rda'
+    rda <- 'data/cps_personnel.rda'
 
     # if exists, load, otherwise, import using force
-    if(file.exists('data/cps_2008_2016.rda')) {
-      load('data/cps_2008_2016.rda')
-      return(cps_2008_2016)
+    if(file.exists('data/cps_personnel.rda')) {
+      load('data/cps_personnel.rda')
+      return(cps_personnel)
     } else {
       get_cps_personnel(data_dir, force = TRUE)
     }

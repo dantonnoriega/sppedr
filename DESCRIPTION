@@ -3,16 +3,17 @@ Type: Package
 Title: Imports, cleans, and combines different data sources for Chicago Public Schools and Police Departments
 Version: 0.1.0
 Author: Danton Noriega
-Maintainer: danton.noriega@gmail.com
+Maintainer: Danton Noriega <danton.noriega@gmail.com>
 Description: Imports, cleans, and combines different data sources for Chicago Public Schools and Police Departments
 License: Creative Commons
 Encoding: UTF-8
 LazyData: true
-Remotes: github::ironholds/poster
+Remotes: github:ironholds/poster
 Imports:
   haven,
   tidyverse,
-  ggmap
+  ggmap,
+  stringr
 Suggests:
     testthat,
     knitr,
