@@ -71,6 +71,8 @@ get_cps_address_data <- function(raw_data_dir = "~/Dropbox/ra-work/spped/Data/",
 
 get_cps_data <- function(raw_data_dir = "~/Dropbox/ra-work/spped/Data/", force = FALSE) {
 
+  if(force) {
+
     stopifnot(dir.exists(raw_data_dir))
     raw_data_dir <- normalizePath(raw_data_dir)
     files <- list.files(raw_data_dir, full.names = TRUE)
