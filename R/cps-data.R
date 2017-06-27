@@ -131,7 +131,10 @@ get_cps_personnel <- function(data_dir = "~/Dropbox/ra-work/spped/RawData/CPS_Pe
     # parse csv
     csv_cols <- c("position_number","unit_number","unit_name","fte","annual_salary","fte_annual_salary","annual_benefit_cost","job_code","job_description","employee_name")
     csv <- csv_files %>%
-      purrr::map(.x = ., .f = readr::read_csv, col_names = csv_cols, trim_ws = TRUE)
+      purrr::map(.x = ., .f = readr::read_csv, col_names = csv_cols, col_type = paste(rep('c', length(csv_cols)), collapse = ""), trim_ws = TRUE)
+
+    # table of security officer positions
+    table(do.call(c, sapply(csv, '[[', 'job_description')))
 
     return(cps_2008_2016)
 
