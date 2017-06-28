@@ -10,7 +10,7 @@ get_cps_address_data(data_dir = "~/Dropbox/ra-work/spped/Data/",
 \arguments{
 \item{data_dir}{path to data folder.}
 
-\item{force}{force a full import.#' @export}
+\item{force}{force a full import.}
 }
 \description{
 get chicago public school data

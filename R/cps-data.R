@@ -2,7 +2,8 @@
 #' @import data.table
 #' @importFrom magrittr %>%
 #' @param data_dir path to data folder.
-#' @param force force a full import.#' @export
+#' @param force force a full import.
+#' @export
 
 get_cps_address_data <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force = FALSE) {
 

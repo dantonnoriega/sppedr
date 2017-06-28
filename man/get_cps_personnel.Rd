@@ -11,7 +11,7 @@
 \arguments{
 \item{data_dir}{path to data folder.}
 
-\item{force}{force a full import.#' @export}
+\item{force}{force a full import.}
 }
 \description{
 get chicago public school data. REQUIRES DATA CLEANED BY SCRIPT `bin/clean-cps-personnel.sh`.

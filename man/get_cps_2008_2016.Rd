@@ -9,7 +9,7 @@ get_cps_2008_2016(data_dir = "~/Dropbox/ra-work/spped/Data/", force = FALSE)
 \arguments{
 \item{data_dir}{path to data folder.}
 
-\item{force}{force a full import.#' @export}
+\item{force}{force a full import.}
 }
 \description{
 get chicago public school data
