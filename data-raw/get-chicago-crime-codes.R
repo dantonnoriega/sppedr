@@ -38,25 +38,24 @@ lgrp <- lapply(lrow, '[', 1)
 zip <- mapply(cbind, lgrp, rrow, SIMPLIFY = FALSE) %>% # zip together
   do.call(rbind, .) %>% # stack
   dplyr::as_tibble(.) %>%
-  dplyr::mutate(ucr = stringr::str_extract(V2, '^[\\d]+[[:upper:]]?\\b')) %>%
+  dplyr::mutate(iucr = stringr::str_extract(V2, '^[\\d]+[[:upper:]]?\\b')) %>%
   dplyr::filter(nchar(V2) > 0) %>%
-  setNames(c('category', 'description', 'ucr')) %>% # new header
-  dplyr::mutate(prefix = gsub('.*[ ]\\(([[:alnum:]]+)\\)$', '\\1', category)) %>%
+  setNames(c('category', 'description', 'iucr')) %>% # new header
   dplyr::mutate(hit = gsub('.*[ ]\\(([[:alnum:]]+)\\)$', '1', category)) %>% # tag if matched
-  dplyr::mutate(prefix = dplyr::if_else(hit == '1', prefix, NA_character_)) %>% # clean up
   dplyr::select(-hit) %>%
-  dplyr::mutate_all(tolower)
+  dplyr::mutate_all(toupper)
 
-# split the dataframe into crime index and ucr
+# split the dataframe into crime index and iucr
 crime <- zip %>%
-  dplyr::filter(is.na(prefix)) %>%
+  dplyr::filter(is.na(iucr)) %>%
   dplyr::slice(2:nrow(.)) %>%
   dplyr::select(category, description) %>%
   dplyr::rename(meta = category, category = description) %>% # rename for joining
-  dplyr::filter(!meta %in% c("index crime", "public violence")) # remove redundant
+  dplyr::filter(!meta %in% c("INDEX CRIME")) # remove redundant
 
 crime_codes <- zip %>%
-  dplyr::filter(!is.na(prefix)) %>%
+  dplyr::filter(!is.na(iucr)) %>%
+  dplyr::filter(!category %in% "PUBLIC VIOLENCE") %>%
   dplyr::left_join(crime, by = 'category')
 
 devtools::use_data(crime_codes, overwrite = TRUE)

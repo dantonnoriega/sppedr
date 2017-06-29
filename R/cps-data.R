@@ -5,7 +5,7 @@
 #' @param force force a full import.
 #' @export
 
-get_cps_address_data <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force = FALSE) {
+get_cps_addresses <- function(data_dir = file.path(get_main_dir(), "Data"), force = FALSE) {
 
   # data_dir = "~/Dropbox/ra-work/spped/Data/"
   # cat(sprintf("DEV LINE: data_dir = %s", data_dir))
@@ -48,6 +48,7 @@ get_cps_address_data <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", for
       dplyr::select(schoolidr_c_d_t_s, schoolname, year, address, lat, lon, charter, ever_address_change, address_full)
 
     devtools::use_data(cps_address, overwrite = TRUE)
+    devtools::use_data(cps_addresses, overwrite = TRUE)
 
     return(cps_address)
 
@@ -60,17 +61,17 @@ get_cps_address_data <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", for
       load('data/cps_address.rda')
       return(cps_address)
     } else {
-      get_cps_address_data(data_dir, force = TRUE)
+      get_cps_addresses(data_dir, force = TRUE)
     }
   }
 
 }
 
 #' get chicago public school data
-#' @inheritParams get_cps_address_data
+#' @inheritParams get_cps_addresses
 #' @export
 
-get_cps_2008_2016 <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force = FALSE) {
+get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), force = FALSE) {
 
   if(force) {
 
@@ -82,7 +83,7 @@ get_cps_2008_2016 <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force 
     indx <- !grepl('address', basename(files))
 
     # get school address data with lat lon
-    addr <- get_cps_address_data(data_dir) %>%
+    addr <- get_cps_addresses(data_dir) %>%
       dplyr::select(schoolidr_c_d_t_s, year, address, lat, lon, address_full)
 
     cps_2008_2016 <- haven::read_dta(files[indx]) %>%
@@ -109,16 +110,17 @@ get_cps_2008_2016 <- function(data_dir = "~/Dropbox/ra-work/spped/Data/", force 
 }
 
 #' get chicago public school data. REQUIRES DATA CLEANED BY SCRIPT `bin/clean-cps-personnel.sh`.
-#' @inheritParams get_cps_address_data
+#' @param raw_data_dir path to raw data folder.
+#' @param force force a full import.
 #' @export
 
-get_cps_personnel <- function(data_dir = "~/Dropbox/ra-work/spped/RawData/CPS_Personnel/cooked", force = FALSE) {
+get_cps_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/CPS_Personnel/cooked"), force = FALSE) {
 
   if(force) {
 
-    stopifnot(dir.exists(data_dir))
-    data_dir <- normalizePath(data_dir)
-    files <- list.files(data_dir, full.names = TRUE)
+    stopifnot(dir.exists(raw_data_dir))
+    raw_data_dir <- normalizePath(raw_data_dir)
+    files <- list.files(raw_data_dir, full.names = TRUE)
 
     # txt and csv
     txt_files <- files[grepl('\\.txt', basename(files))] %>%
@@ -215,7 +217,7 @@ get_cps_personnel <- function(data_dir = "~/Dropbox/ra-work/spped/RawData/CPS_Pe
       load('data/cps_personnel.rda')
       return(cps_personnel)
     } else {
-      get_cps_personnel(data_dir, force = TRUE)
+      get_cps_personnel(raw_data_dir, force = TRUE)
     }
   }
 
