@@ -24,7 +24,8 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
 
     data.table::setkey(cpd_crime, ymd, hms)
 
-    # update vars
+    # drop some vars and edit others
+    cpd_crime[, c('x', 'y', 'location', 'updated_on', 'date') := NULL]
     cpd_crime[, arrest := 0 + (arrest == 'true')]
     cpd_crime[, domestic := 0 + (domestic == 'true')]
 
@@ -53,8 +54,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
 
     # (2) merge crimes
     # merge cpd_crime_codes
-    cpd_crime <- data.table:::merge.data.table(cpd_crime, crime_codes$fbi, by = 'fbi_code', all.x = TRUE) %>%
-    data.table:::merge.data.table(., crime_codes$iucr, by = c('iucr', 'crime_type'), all.x = TRUE)
+    cpd_crime <- data.table:::merge.data.table(cpd_crime, crime_codes$fbi, by = 'fbi_code', all.x = TRUE)
 
     data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 
