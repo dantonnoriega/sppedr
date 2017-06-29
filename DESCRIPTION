@@ -8,12 +8,14 @@ Description: Imports, cleans, and combines different data sources for Chicago Pu
 License: Creative Commons
 Encoding: UTF-8
 LazyData: true
-Remotes: github:ironholds/poster
 Imports:
   haven,
+  data.table,
   tidyverse,
   ggmap,
-  stringr
+  stringr,
+  lubridate,
+  geosphere
 Suggests:
     testthat,
     knitr,

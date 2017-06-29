@@ -1,0 +1,494 @@
+fread                package:data.table                R Documentation
+
+_F_a_s_t _a_n_d _f_r_i_e_n_d_l_y _f_i_l_e _f_i_n_a_g_l_e_r
+
+_D_e_s_c_r_i_p_t_i_o_n:
+
+     Similar to ‘read.table’ but faster and more convenient. All
+     controls such as ‘sep’, ‘colClasses’ and ‘nrows’ are automatically
+     detected. ‘bit64::integer64’ types are also detected and read
+     directly without needing to read as character before converting.
+
+     Dates are read as character currently. They can be converted
+     afterwards using the excellent ‘fasttime’ package or standard base
+     functions.
+
+     `fread` is for _regular_ delimited files; i.e., where every row
+     has the same number of columns. In future, secondary separator
+     (‘sep2’) may be specified _within_ each column. Such columns will
+     be read as type ‘list’ where each cell is itself a vector.
+
+_U_s_a_g_e:
+
+     fread(input, sep="auto", sep2="auto", nrows=-1L, header="auto", na.strings="NA", file,
+     stringsAsFactors=FALSE, verbose=getOption("datatable.verbose"), autostart=1L,
+     skip=0L, select=NULL, drop=NULL, colClasses=NULL,
+     integer64=getOption("datatable.integer64"),         # default: "integer64"
+     dec=if (sep!=".") "." else ",", col.names, 
+     check.names=FALSE, encoding="unknown", quote="\"", 
+     strip.white=TRUE, fill=FALSE, blank.lines.skip=FALSE, key=NULL, 
+     showProgress=getOption("datatable.showProgress"),   # default: TRUE
+     data.table=getOption("datatable.fread.datatable")   # default: TRUE
+     )
+     
+_A_r_g_u_m_e_n_t_s:
+
+   input: Either the file name to read (containing no \n character), a
+          shell command that preprocesses the file (e.g. ‘fread("grep
+          blah filename"))’ or the input itself as a string (containing
+          at least one \n), see examples. In both cases, a length 1
+          character string. A filename input is passed through
+          ‘path.expand’ for convenience and may be a URL starting
+          http:// or file://.
+
+     sep: The separator between columns. Defaults to the first
+          character in the set [‘,\t |;:’] that exists on line
+          ‘autostart’ outside quoted (‘""’) regions, and separates the
+          rows above ‘autostart’ into a consistent number of fields,
+          too.
+
+    sep2: The separator _within_ columns. A ‘list’ column will be
+          returned where each cell is a vector of values. This is much
+          faster using less working memory than ‘strsplit’ afterwards
+          or similar techniques. For each column ‘sep2’ can be
+          different and is the first character in the same set above
+          [‘,\t |;:’], other than ‘sep’, that exists inside each field
+          outside quoted regions on line ‘autostart’. NB: ‘sep2’ is not
+          yet implemented.
+
+   nrows: The number of rows to read, by default -1 means all. Unlike
+          ‘read.table’, it doesn't help speed to set this to the number
+          of rows in the file (or an estimate), since the number of
+          rows is automatically determined and is already fast. Only
+          set ‘nrows’ if you require the first 10 rows, for example.
+          `nrows=0` is a special case that just returns the column
+          names and types; e.g., a dry run for a large file or to
+          quickly check format consistency of a set of files before
+          starting to read any.
+
+  header: Does the first data line contain column names? Defaults
+          according to whether every non-empty field on the first data
+          line is type character. If so, or TRUE is supplied, any empty
+          column names are given a default name.
+
+na.strings: A character vector of strings which are to be interpreted
+          as ‘NA’ values. By default ‘",,"’ for columns read as type
+          character is read as a blank string (‘""’) and ‘",NA,"’ is
+          read as ‘NA’. Typical alternatives might be ‘na.strings=NULL’
+          (no coercion to NA at all!) or perhaps
+          ‘na.strings=c("NA","N/A","null")’.
+
+    file: File path, useful when we want to ensure that no shell
+          commands will be executed. File path can also be provided to
+          ‘input’ argument.
+
+stringsAsFactors: Convert all character columns to factors?
+
+ verbose: Be chatty and report timings?
+
+autostart: Any line number within the region of machine readable
+          delimited text, by default 30. If the file is shorter or this
+          line is empty (e.g. short files with trailing blank lines)
+          then the last non empty line (with a non empty line above
+          that) is used. This line and the lines above it are used to
+          auto detect ‘sep’, ‘sep2’ and the number of fields. It's
+          extremely unlikely that ‘autostart’ should ever need to be
+          changed, we hope.
+
+    skip: If 0 (default) use the procedure described below starting on
+          line ‘autostart’ to find the first data row. ‘skip>0’ means
+          ignore ‘autostart’ and take line ‘skip+1’ as the first data
+          row (or column names according to header="auto"|TRUE|FALSE as
+          usual). ‘skip="string"’ searches for ‘"string"’ in the file
+          (e.g. a substring of the column names row) and starts on that
+          line (inspired by read.xls in package gdata).
+
+  select: Vector of column names or numbers to keep, drop the rest.
+
+    drop: Vector of column names or numbers to drop, keep the rest.
+
+colClasses: A character vector of classes (named or unnamed), as
+          read.csv. Or a named list of vectors of column names or
+          numbers, see examples. colClasses in fread is intended for
+          rare overrides, not for routine use. fread will only promote
+          a column to a higher type if colClasses requests it. It won't
+          downgrade a column to a lower type since NAs would result.
+          You have to coerce such columns afterwards yourself, if you
+          really require data loss.
+
+integer64: "integer64" (default) reads columns detected as containing
+          integers larger than 2^31 as type ‘bit64::integer64’.
+          Alternatively, ‘"double"|"numeric"’ reads as ‘base::read.csv’
+          does; i.e., possibly with loss of precision and if so
+          silently. Or, "character".
+
+     dec: The decimal separator as in ‘base::read.csv’. If not "."
+          (default) then usually ",". See details.
+
+col.names: A vector of optional names for the variables (columns). The
+          default is to use the header column if present or detected,
+          or if not "V" followed by the column number.
+
+check.names: default is ‘FALSE’. If ‘TRUE’ then the names of the
+          variables in the ‘data.table’ are checked to ensure that they
+          are syntactically valid variable names. If necessary they are
+          adjusted (by ‘make.names’) so that they are, and also to
+          ensure that there are no duplicates.
+
+encoding: default is ‘"unknown"’. Other possible options are ‘"UTF-8"’
+          and ‘"Latin-1"’.  Note: it is not used to re-encode the
+          input, rather enables handling of encoded strings in their
+          native encoding.
+
+   quote: By default (‘"\""’), if a field starts with a doublequote,
+          ‘fread’ handles embedded quotes robustly as explained under
+          ‘Details’. If it fails, then another attempt is made to read
+          the field _as is_, i.e., as if quotes are disabled. By
+          setting ‘quote=""’, the field is always read as if quotes are
+          disabled.
+
+strip.white: default is ‘TRUE’. Strips leading and trailing whitespaces
+          of unquoted fields. If ‘FALSE’, only header trailing spaces
+          are removed.
+
+    fill: logical (default is ‘FALSE’). If ‘TRUE’ then in case the rows
+          have unequal length, blank fields are implicitly filled.
+
+blank.lines.skip: ‘logical’, default is ‘FALSE’. If ‘TRUE’ blank lines
+          in the input are ignored.
+
+     key: Character vector of one or more column names which is passed
+          to ‘setkey’. It may be a single comma separated string such
+          as ‘key="x,y,z"’, or a vector of names such as
+          ‘key=c("x","y","z")’. Only valid when argument
+          ‘data.table=TRUE’.
+
+showProgress: ‘TRUE’ displays progress on the console using ‘\r’. It is
+          produced in fread's C code where the very nice (but R level)
+          txtProgressBar and tkProgressBar are not easily available.
+
+data.table: TRUE returns a ‘data.table’. FALSE returns a ‘data.frame’.
+
+_D_e_t_a_i_l_s:
+
+     Once the separator is found on line ‘autostart’, the number of
+     columns is determined. Then the file is searched backwards from
+     ‘autostart’ until a row is found that doesn't have that number of
+     columns. Thus, the first data row is found and any human readable
+     banners are automatically skipped. This feature can be
+     particularly useful for loading a set of files which may not all
+     have consistently sized banners. Setting ‘skip>0’ overrides this
+     feature by setting ‘autostart=skip+1’ and turning off the search
+     upwards step.
+
+     A sample of 1,000 rows is used to determine column types (100 rows
+     from 10 points). The lowest type for each column is chosen from
+     the ordered list: ‘logical’, ‘integer’, ‘integer64’, ‘double’,
+     ‘character’. This enables ‘fread’ to allocate exactly the right
+     number of rows, with columns of the right type, up front once. The
+     file may of course still contain data of a higher type in rows
+     outside the sample. In that case, the column types are bumped mid
+     read and the data read on previous rows is coerced. Setting
+     ‘verbose=TRUE’ reports the line and field number of each mid read
+     type bump and how long this type bumping took (if any).
+
+     There is no line length limit, not even a very large one. Since we
+     are encouraging ‘list’ columns (i.e. ‘sep2’) this has the
+     potential to encourage longer line lengths. So the approach of
+     scanning each line into a buffer first and then rescanning that
+     buffer is not used. There are no buffers used in ‘fread’'s C code
+     at all. The field width limit is limited by R itself: the maximum
+     width of a character string (currenly 2^31-1 bytes, 2GB).
+
+     The filename extension (such as .csv) is irrelevant for "auto"
+     ‘sep’ and ‘sep2’. Separator detection is entirely driven by the
+     file contents. This can be useful when loading a set of different
+     files which may not be named consistently, or may not have the
+     extension .csv despite being csv. Some datasets have been
+     collected over many years, one file per day for example. Sometimes
+     the file name format has changed at some point in the past or even
+     the format of the file itself. So the idea is that you can loop
+     ‘fread’ through a set of files and as long as each file is regular
+     and delimited, ‘fread’ can read them all. Whether they all stack
+     is another matter but at least each one is read quickly without
+     you needing to vary ‘colClasses’ in ‘read.table’ or ‘read.csv’.
+
+     If an empty line is encountered then reading stops there, with
+     warning if any text exists after the empty line such as a footer.
+     The first line of any text discarded is included in the warning
+     message.
+
+     *Line endings:* All known line endings are detected automatically:
+     ‘\n’ (*NIX including Mac), ‘\r\n’ (Windows CRLF), ‘\r’ (old Mac)
+     and ‘\n\r’ (just in case). There is no need to convert input files
+     first. ‘fread’ running on any architecture will read a file from
+     any architecture. Both ‘\r’ and ‘\n’ may be embedded in character
+     strings (including column names) provided the field is quoted.
+
+     *Decimal separator and locale:* ‘fread(...,dec=",")’ should just
+     work. ‘fread’ uses C function ‘strtod’ to read numeric data; e.g.,
+     ‘1.23’ or ‘1,23’. ‘strtod’ retrieves the decimal separator (‘.’ or
+     ‘,’ usually) from the locale of the R session rather than as an
+     argument passed to the ‘strtod’ function. So for
+     ‘fread(...,dec=",")’ to work, ‘fread’ changes this (and only this)
+     R session's locale temporarily to a locale which provides the
+     desired decimal separator.
+
+     On Windows, "French_France.1252" is tried which should be
+     available as standard (any locale with comma decimal separator
+     would suffice) and on unix "fr_FR.utf8" (you may need to install
+     this locale on unix). ‘fread()’ is very careful to set the locale
+     back again afterwards, even if the function fails with an error.
+     The choice of locale is determined by
+     ‘options()$datatable.fread.dec.locale’. This may be a _vector_ of
+     locale names and if so they will be tried in turn until the
+     desired ‘dec’ is obtained; thus allowing more than two different
+     decimal separators to be selected. This is a new feature in v1.9.6
+     and is experimental. In case of problems, turn it off with
+     ‘options(datatable.fread.dec.experiment=FALSE)’.
+
+     *Quotes:*
+
+     When ‘quote’ is a single character,
+
+        • Spaces and other whitespace (other than ‘sep’ and ‘\n’) may
+          appear in unquoted character fields, e.g., ‘...,2,Joe
+          Bloggs,3.14,...’.
+
+        • When ‘character’ columns are _quoted_, they must start and
+          end with that quoting character immediately followed by ‘sep’
+          or ‘\n’, e.g., ‘...,2,"Joe Bloggs",3.14,...’.
+
+          In essence quoting character fields are _required_ only if
+          ‘sep’ or ‘\n’ appears in the string value. Quoting may be
+          used to signify that numeric data should be read as text.
+          Unescaped quotes may be present in a quoted field, e.g.,
+          ‘...,2,"Joe, "Bloggs"",3.14,...’, as well as escaped quotes,
+          e.g., ‘...,2,"Joe \",Bloggs\"",3.14,...’.
+
+          If an embedded quote is followed by the separator inside a
+          quoted field, the embedded quotes up to that point in that
+          field must be balanced; e.g.
+          ‘...,2,"www.blah?x="one",y="two"",3.14,...’.
+
+          On those fields that do not satisfy these conditions, e.g.,
+          fields with unbalanced quotes, ‘fread’ re-attempts that field
+          as if it isn't quoted. This is quite useful in reading files
+          that contains fields with unbalanced quotes as well,
+          automatically.
+
+     To read fields _as is_ instead, use ‘quote = ""’.
+
+_V_a_l_u_e:
+
+     A ‘data.table’ by default. A ‘data.frame’ when argument
+     ‘data.table=FALSE’; e.g.
+     ‘options(datatable.fread.datatable=FALSE)’.
+
+_R_e_f_e_r_e_n_c_e_s:
+
+     Background :
+     <URL: https://cran.r-project.org/doc/manuals/R-data.html>
+     <URL:
+     http://stackoverflow.com/questions/1727772/quickly-reading-very-large-tables-as-dataframes-in-r>
+     <URL:
+     http://www.biostat.jhsph.edu/~rpeng/docs/R-large-tables.html>
+     <URL:
+     https://stat.ethz.ch/pipermail/r-help/2007-August/138315.html>
+     <URL:
+     http://www.cerebralmastication.com/2009/11/loading-big-data-into-r/>
+     <URL:
+     http://stackoverflow.com/questions/9061736/faster-than-scan-with-rcpp>
+     <URL:
+     http://stackoverflow.com/questions/415515/how-can-i-read-and-manipulate-csv-file-data-in-c>
+     <URL:
+     http://stackoverflow.com/questions/9352887/strategies-for-reading-in-csv-files-in-pieces>
+     <URL:
+     http://stackoverflow.com/questions/11782084/reading-in-large-text-files-in-r>
+     <URL:
+     http://stackoverflow.com/questions/45972/mmap-vs-reading-blocks>
+     <URL:
+     http://stackoverflow.com/questions/258091/when-should-i-use-mmap-for-file-access>
+     <URL: http://stackoverflow.com/a/9818473/403310>
+     <URL:
+     http://stackoverflow.com/questions/9608950/reading-huge-files-using-memory-mapped-files>
+
+     finagler = "to get or achieve by guile or manipulation" <URL:
+     http://dictionary.reference.com/browse/finagler>
+
+_S_e_e _A_l_s_o:
+
+     ‘read.csv’, ‘url’, ‘Sys.setlocale’
+
+_E_x_a_m_p_l_e_s:
+
+     ## Not run:
+     
+     
+     # Demo speedup
+     n=1e6
+     DT = data.table( a=sample(1:1000,n,replace=TRUE),
+                      b=sample(1:1000,n,replace=TRUE),
+                      c=rnorm(n),
+                      d=sample(c("foo","bar","baz","qux","quux"),n,replace=TRUE),
+                      e=rnorm(n),
+                      f=sample(1:1000,n,replace=TRUE) )
+     DT[2,b:=NA_integer_]
+     DT[4,c:=NA_real_]
+     DT[3,d:=NA_character_]
+     DT[5,d:=""]
+     DT[2,e:=+Inf]
+     DT[3,e:=-Inf]
+     
+     write.table(DT,"test.csv",sep=",",row.names=FALSE,quote=FALSE)
+     cat("File size (MB):", round(file.info("test.csv")$size/1024^2),"\n")
+     # 50 MB (1e6 rows x 6 columns)
+     
+     system.time(DF1 <-read.csv("test.csv",stringsAsFactors=FALSE))
+     # 60 sec (first time in fresh R session)
+     
+     system.time(DF1 <- read.csv("test.csv",stringsAsFactors=FALSE))
+     # 30 sec (immediate repeat is faster, varies)
+     
+     system.time(DF2 <- read.table("test.csv",header=TRUE,sep=",",quote="",
+         stringsAsFactors=FALSE,comment.char="",nrows=n,
+         colClasses=c("integer","integer","numeric",
+                      "character","numeric","integer")))
+     # 10 sec (consistently). All known tricks and known nrows, see references.
+     
+     require(data.table)
+     system.time(DT <- fread("test.csv"))
+     #  3 sec (faster and friendlier)
+     
+     require(sqldf)
+     system.time(SQLDF <- read.csv.sql("test.csv",dbname=NULL))
+     # 20 sec (friendly too, good defaults)
+     
+     require(ff)
+     system.time(FFDF <- read.csv.ffdf(file="test.csv",nrows=n))
+     # 20 sec (friendly too, good defaults)
+     
+     identical(DF1,DF2)
+     all.equal(as.data.table(DF1), DT)
+     identical(DF1,within(SQLDF,{b<-as.integer(b);c<-as.numeric(c)}))
+     identical(DF1,within(as.data.frame(FFDF),d<-as.character(d)))
+     
+     # Scaling up ...
+     l = vector("list",10)
+     for (i in 1:10) l[[i]] = DT
+     DTbig = rbindlist(l)
+     tables()
+     write.table(DTbig,"testbig.csv",sep=",",row.names=FALSE,quote=FALSE)
+     # 500MB (10 million rows x 6 columns)
+     
+     system.time(DF <- read.table("testbig.csv",header=TRUE,sep=",",         
+         quote="",stringsAsFactors=FALSE,comment.char="",nrows=1e7,                     
+         colClasses=c("integer","integer","numeric",
+                      "character","numeric","integer")))
+     # 100-200 sec (varies)
+     
+     system.time(DT <- fread("testbig.csv"))
+     # 30-40 sec
+     
+     all(mapply(all.equal, DF, DT))
+     
+     
+     # Real data example (Airline data)
+     # http://stat-computing.org/dataexpo/2009/the-data.html
+     
+     download.file("http://stat-computing.org/dataexpo/2009/2008.csv.bz2",
+                   destfile="2008.csv.bz2")
+     # 109MB (compressed)
+     
+     system("bunzip2 2008.csv.bz2")                                          
+     # 658MB (7,009,728 rows x 29 columns)
+     
+     colClasses = sapply(read.csv("2008.csv",nrows=100),class)
+     # 4 character, 24 integer, 1 logical. Incorrect.
+     
+     colClasses = sapply(read.csv("2008.csv",nrows=200),class)
+     # 5 character, 24 integer. Correct. Might have missed data only using 100 rows
+     # since read.table assumes colClasses is correct.
+     
+     system.time(DF <- read.table("2008.csv", header=TRUE, sep=",",          
+         quote="",stringsAsFactors=FALSE,comment.char="",nrows=7009730,      
+         colClasses=colClasses)
+     # 360 secs
+     
+     system.time(DT <- fread("2008.csv"))
+     #  40 secs
+     
+     table(sapply(DT,class))
+     # 5 character and 24 integer columns. Correct without needing to worry about colClasses
+     # issue above.
+     
+     
+     # Reads URLs directly :
+     fread("http://www.stats.ox.ac.uk/pub/datasets/csb/ch11b.dat")
+     ## End(Not run)
+     
+     
+     # Reads text input directly :
+     fread("A,B\n1,2\n3,4")
+     
+     # Reads pasted input directly :
+     fread("A,B
+     1,2
+     3,4
+     ")
+     
+     # Finds the first data line automatically :
+     fread("
+     This is perhaps a banner line or two or ten.
+     A,B
+     1,2
+     3,4
+     ")
+     
+     # Detects whether column names are present automatically :
+     fread("
+     1,2
+     3,4
+     ")
+     
+     # Numerical precision :
+     
+     DT = fread("A\n1.010203040506070809010203040506\n")   # silent loss of precision
+     DT[,sprintf("%.15E",A)]   # stored accurately as far as double precision allows
+     
+     DT = fread("A\n1.46761e-313\n")   # detailed warning about ERANGE; read as 'numeric'
+     DT[,sprintf("%.15E",A)]   # beyond what double precision can store accurately to 15 digits
+     
+     # For greater accuracy use colClasses to read as character, then package Rmpfr.
+     
+     # colClasses
+     data = "A,B,C,D\n1,3,5,7\n2,4,6,8\n"
+     fread(data, colClasses=c(B="character",C="character",D="character"))  # as read.csv
+     fread(data, colClasses=list(character=c("B","C","D")))    # saves typing
+     fread(data, colClasses=list(character=2:4))     # same using column numbers
+     
+     # drop
+     fread(data, colClasses=c("B"="NULL","C"="NULL"))   # as read.csv
+     fread(data, colClasses=list(NULL=c("B","C")))      # 
+     fread(data, drop=c("B","C"))      # same but less typing, easier to read
+     fread(data, drop=2:3)             # same using column numbers
+     
+     # select
+     # (in read.csv you need to work out which to drop)
+     fread(data, select=c("A","D"))    # less typing, easier to read
+     fread(data, select=c(1,4))        # same using column numbers
+     
+     # skip blank lines
+     fread("a,b\n1,a\n2,b\n\n\n3,c\n", blank.lines.skip=TRUE)
+     # fill
+     fread("a,b\n1,a\n2\n3,c\n", fill=TRUE)
+     fread("a,b\n\n1,a\n2\n\n3,c\n\n", fill=TRUE)
+     
+     # fill with skip blank lines
+     fread("a,b\n\n1,a\n2\n\n3,c\n\n", fill=TRUE, blank.lines.skip=TRUE)
+     
+     # check.names usage
+     fread("a b,a b\n1,2\n")
+     fread("a b,a b\n1,2\n", check.names=TRUE) # no duplicates + syntactically valid names
+     
+

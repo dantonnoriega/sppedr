@@ -3,7 +3,7 @@
 #' @param force force a full import.
 #' @export
 
-get_cpd_crime_data <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"), import = FALSE) {
+get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"), import = FALSE) {
 
   # data_dir = "~/Dropbox/ra-work/spped/Data/"
   # cat(sprintf("DEV LINE: data_dir = %s", data_dir))
@@ -13,43 +13,72 @@ get_cpd_crime_data <- function(data_dir = file.path(get_main_dir(), "RawData/Chi
     data_dir <- normalizePath(data_dir)
     files <- list.files(data_dir, full.names = TRUE, pattern = '^crime.*csv$', ignore.case = TRUE)
 
-    csv <- readr::read_csv(files, trim_ws = TRUE) %>%
-      setNames(tolower(gsub('[[:space:]]+', '_', names(.)))) %>%
-      dplyr::rename(lat = latitude, lon = longitude, x = x_coordinate, y = y_coordinate) %>%
-      dplyr::mutate(date = strptime(date, format = "%m/%d/%Y %H:%M:%S %p") %>% as.POSIXct(tz = "GMT")) %>%
-      dplyr::mutate(ymd = as.Date(format(date, "%Y-%m-%d")), hms = format(date, "%T")) %>%
-      dplyr::select(id, case_number, date, ymd, hms, dplyr::everything())
+    cpd_crime <- data.table::fread(files)
+    data.table::setnames(cpd_crime, names(cpd_crime), gsub('[[:space:]]+', '_', tolower(names(cpd_crime))))
+    data.table::setnames(cpd_crime, c('latitude', 'longitude', 'x_coordinate', 'y_coordinate'), c('lat', 'lon', 'x', 'y'))
 
-    # filter csv file by dates
-    # (1) filter violent crimes
-    # (2) between 2007 and 2016 school year dates
+    # get dates and filter out dates prior to 2007
+    cpd_crime <- cpd_crime %>%
+      .[, `:=`(ymd = fast.as.IDate(date, format = "%m/%d/%Y %H:%M:%S %p"), hms = fast.as.ITime(date, format = "%m/%d/%Y %H:%M:%S %p"))] %>%
+      .[ymd > as.IDate("2006-01-01")]
+
+    data.table::setkey(cpd_crime, ymd, hms)
+
+    # drop some vars and edit others
+    cpd_crime[, c('x', 'y', 'location', 'updated_on') := NULL]
+    cpd_crime[, arrest := 0 + (arrest == 'true')]
+    cpd_crime[, domestic := 0 + (domestic == 'true')]
+
+    # filter cpd_crime file by dates
+    # (1) between 2007 and 2016 calendar year dates
     ## school year span
     sy <- cps_school_year$school_year
     st <- sy$start
     ed <- sy$end
 
     ## off days
-    off <- cps_school_year$days_off
+    off <- cps_school_year$days_off$date
 
-    csv2 <- csv %>%
-      dplyr::filter(dplyr::between(ymd, st[1], ed[nrow(sy)])) %>%
-      purrr::map2_df(.x = st, .y = ed, .f = ~dplyr::filter(., dplyr::between(ymd, .x, .y)))
+    # during school year
+    invisible(mapply(function(.x, .y) cpd_crime[data.table::between(ymd, .x, .y), during_school_year := 1] %>% .[is.na(during_school_year), during_school_year := 0], .x = st, .y = ed, SIMPLIFY = FALSE))
 
-    devtools::use_data(cpd_crime, overwrite = TRUE)
+    # days off
+    cpd_crime[, day_off_school_year := 0 + and(ymd %in% off, during_school_year == 1)]
+
+    # weekdays and day/evening
+    cpd_crime[, `:=`(dow = data.table::wday(ymd), dow_chr = format(ymd, "%a"))]
+    cpd_crime[, weekday := 0 + (dow %in% c(2:6))]
+
+    cpd_crime[, hour := data.table::hour(hms)]
+    cpd_crime[, `:=`(day_hours = 0 + (hour %in% c(6:18)))]
+
+    # (2) merge crimes
+    # merge cpd_crime_codes
+    cpd_crime <- data.table:::merge.data.table(cpd_crime, crime_codes$fbi, by = 'fbi_code', all.x = TRUE) %>%
+    data.table:::merge.data.table(., crime_codes$iucr, by = c('iucr', 'crime_type'), all.x = TRUE)
+
+    data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 
     return(cpd_crime)
 
   } else {
     # check for data
-    csv <- 'data/cpd_crime.rda'
+    tiny <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", nrows = 5)
+    nms  <- names(tiny)
+    nc   <- ncol(tiny)
+    int  <- c("arrest", "domestic", "beat", "district", "ward", "community_area", "year", "lat", "lon", "during_school_year", "day_off_school_year", "weekday", "dow", "hour", "day_hours") # integer cols
+    indx <- which(nms %in% int)
 
-    # if exists, load, otherwise, import using force
-    if(file.exists('data/cpd_crime.rda')) {
-      load('data/cpd_crime.rda')
-      return(cpd_crime)
-    } else {
-      get_cpd_crime_data(data_dir, force = TRUE)
-    }
+    # set col classes
+    cols_class <- rep('character', nc) %>%
+      '[<-'(indx, 'integer')
+
+    cpd_crime <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", colClasses = cols_class) %>%
+      .[, `:=`(ymd = fast.as.IDate(ymd), hms = fast.as.ITime(hms, format = "%H:%M:%S"))] %>%
+      '['()
+
+    cpd_crime <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", colClasses = cols_class)
+
   }
 
 }
