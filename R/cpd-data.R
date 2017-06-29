@@ -73,11 +73,11 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     cols_class <- rep('character', nc) %>%
       '[<-'(indx, 'integer')
 
-    cpd_crime <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", colClasses = cols_class) %>%
+    cpd_crime <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", colClasses = cols_class, na.strings = c("", "NA")) %>%
       .[, `:=`(ymd = fast.as.IDate(ymd), hms = fast.as.ITime(hms, format = "%H:%M:%S"))] %>%
       '['()
 
-    cpd_crime <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", colClasses = cols_class)
+    return(cpd_crime)
 
   }
 
