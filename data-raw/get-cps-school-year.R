@@ -16,13 +16,15 @@ sy <- psv[[1]] %>%
   as.data.frame() %>%
   tibble::rownames_to_column() %>%
   setNames(c("sy", "start", "end")) %>%
-  dplyr::mutate_at(.vars = dplyr::vars(start, end), as.Date, format = "%m-%d-%y")
+  dplyr::mutate_at(.vars = dplyr::vars(start, end), as.Date, format = "%m-%d-%y") %>%
+  tibble::as_tibble()
 
 # off days
 off <- psv[[2]] %>%
   setNames(tolower(names(.))) %>%
   dplyr::mutate(date = ISOdate(year, month, day, 0, 0, 0) %>% as.Date) %>%
-  dplyr::select(sy, date, reason, dplyr::everything())
+  dplyr::select(sy, date, reason, dplyr::everything()) %>%
+  tibble::as_tibble()
 
 cps_school_year <- list(school_year = sy, days_off = off)
 
