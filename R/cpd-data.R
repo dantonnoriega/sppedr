@@ -20,12 +20,11 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     # get dates and filter out dates prior to 2007
     cpd_crime <- cpd_crime %>%
       .[, `:=`(ymd = fast.as.IDate(date, format = "%m/%d/%Y %H:%M:%S %p"), hms = fast.as.ITime(date, format = "%m/%d/%Y %H:%M:%S %p"))] %>%
-      .[ymd > as.IDate("2006-01-01")]
+      .[ymd > as.IDate("2007-01-01")]
 
     data.table::setkey(cpd_crime, ymd, hms)
 
-    # drop some vars and edit others
-    cpd_crime[, c('x', 'y', 'location', 'updated_on') := NULL]
+    # update vars
     cpd_crime[, arrest := 0 + (arrest == 'true')]
     cpd_crime[, domestic := 0 + (domestic == 'true')]
 
@@ -59,6 +58,9 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
 
     data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 
+    cpd_crime <- cpd_crime %>%
+      tibble::as_tibble()
+
     return(cpd_crime)
 
   } else {
@@ -75,7 +77,8 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
 
     cpd_crime <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", colClasses = cols_class, na.strings = c("", "NA")) %>%
       .[, `:=`(ymd = fast.as.IDate(ymd), hms = fast.as.ITime(hms, format = "%H:%M:%S"))] %>%
-      '['()
+      '['() %>%
+      tibble::as_tibble()
 
     return(cpd_crime)
 
