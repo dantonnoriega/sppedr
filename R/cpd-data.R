@@ -54,7 +54,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
 
     # (2) merge crimes
     # merge cpd_crime_codes
-    cpd_crime <- data.table:::merge.data.table(cpd_crime, crime_codes$fbi, by = 'fbi_code', all.x = TRUE)
+    cpd_crime <- data.table:::merge.data.table(cpd_crime, cpd_crime_codes$fbi, by = 'fbi_code', all.x = TRUE)
 
     data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 

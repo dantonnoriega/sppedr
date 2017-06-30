@@ -53,28 +53,28 @@ crime <- zip %>%
   dplyr::rename(meta = category, category = description) %>% # rename for joining
   dplyr::filter(!meta %in% c("INDEX CRIME")) # remove redundant
 
-crime_codes <- zip %>%
+cpd_crime_codes <- zip %>%
   dplyr::filter(!is.na(iucr)) %>%
   dplyr::filter(!category %in% "PUBLIC VIOLENCE") %>%
   dplyr::left_join(crime, by = 'category')
 
 # split up crime category and NIBRS code
-crime_codes <- crime_codes %>%
+cpd_crime_codes <- cpd_crime_codes %>%
   dplyr::mutate(fbi_code = gsub('^(.*)[[:space:]]\\(([[:alnum:]]+)\\)', '\\2', category)) %>%
   dplyr::mutate(category = gsub('^(.*)[[:space:]]\\(([[:alnum:]]+)\\)', '\\1', category)) %>%
   setNames(c('crime_category', 'iucr_description', 'iucr', 'crime_type', 'fbi_code'))
 
-iucr <- crime_codes %>%
+iucr <- cpd_crime_codes %>%
   dplyr::select(dplyr::starts_with('iucr'), dplyr::starts_with('crime')) %>%
   dplyr::distinct()
 
-fbi <- crime_codes %>%
+fbi <- cpd_crime_codes %>%
   dplyr::select(fbi_code, crime_type) %>%
   dplyr::distinct()
 
-crime_codes <- list(iucr = iucr, fbi = fbi)
+cpd_crime_codes <- list(iucr = iucr, fbi = fbi)
 
-devtools::use_data(crime_codes, overwrite = TRUE)
+devtools::use_data(cpd_crime_codes, overwrite = TRUE)
 
 
 # TODO
