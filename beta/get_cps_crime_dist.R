@@ -1,38 +1,83 @@
 # functions
-get_mi <- function(x, y) {
+get_mi <- function(x, y, yr) {
 
-  d <- geosphere::distCosine(x, y, r = r)
-  mi_qtr  <- sum(d <= .25)
-  mi_half <- sum(d <= .5)
+  y <- y %>%
+    dplyr::filter(year == yr)
 
-  return(c(mi_qtr = mi_qtr, mi_half = mi_half))
+  v <- y %>%
+    dplyr::select(lon, lat) %>% # order matters
+    as.matrix()
+
+  r <- 3959 # earth mean radius in miles
+  d <- geosphere::distCosine(x, v, r = r)
+
+  z <- dplyr::bind_cols(y, dist = d) %>%
+    dplyr::mutate(mi_qtr = d <= 0.25, mi_half = d <= 0.5) %>%
+    dplyr::group_by(crime_type, year, during_school_year, day_off_school_year, weekday, day_hours) %>%
+    dplyr::summarize(mi_qtr = sum(mi_qtr), mi_half = sum(mi_half))
+
+  return(z)
+
+}
+
+# get distance
+get_crime_counts <- function(x, y, yr) {
+
+  CORES <- parallel::detectCores() - 1
+
+  u <- x %>%
+    dplyr::filter(year == yr) %>%
+    dplyr::select(lon, lat) %>%
+    as.matrix() %>%
+    apply(., 1, list) %>%
+    lapply(., '[[', 1)
+
+  z <- x %>%
+    dplyr::filter(year == yr) %>%
+    dplyr::mutate(year = as.integer(year)) %>%
+    dplyr::select(-lat, -lon) # drop lat lon, attach later
+
+  counts <- parallel::mclapply(u, get_mi, y = y, yr = yr, mc.cores = CORES) %>%
+    tibble::tibble(df = .)
+
+    # bind values
+  dist_df <- do.call(rbind, u) %>%
+    tibble::as_tibble() %>%
+    dplyr::bind_cols(., counts) %>%
+    dplyr::bind_cols(z, .) %>%
+    tidyr::unnest(df)
+
+  return(dist_df)
 
 }
 
 # load data
 
 devtools::load_all("/Users/danton/GitHub/sppedr")
-cpd_crime <- get_cpd_crime(import = TRUE)
+cpd_crime <- get_cpd_crime()
 
-cpd2008 <- cpd_crime %>%
-  dplyr::filter(year == 2008)
+# missing rate of lat/lon
+pct <- sum(is.na(cpd_crime$lat))/nrow(cpd_crime) * 100
+s <- sprintf("lat/lon missing rate = %g%%", pct)
+message(s)
 
-# unique lat lon
-cps_lon_lat <- cps_address %>%
-  dplyr::select(lon, lat) %>%
-  dplyr::distinct() %>%
-  as.matrix()
+# remove rows without lat/long
+cpd <- cpd_crime %>%
+  dplyr::filter(!is.na(lat))
 
-cpd_lon_lat <- cpd2008 %>%
-  dplyr::select(lon, lat) %>%
-  dplyr::filter(!is.na(lat)) %>%
-  as.matrix()
+# assume 2016 is calendar year. school year goes into 2017 calendar, so we add these data
+cps2017 <- cps_address %>%
+  dplyr::filter(year == 2016) %>% # carry forward 2016 data to 2017
+  dplyr::mutate(year = 2017)
 
-r <- 3959
+cps <- dplyr::bind_rows(cps_address, cps2017) %>%
+  dplyr::arrange(schoolidr_c_d_t_s, year)
 
-p1s <- apply(cps_lon_lat, 1, list) %>%
-  lapply(., '[[', 1)
+# estimate crimes within distance
+dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps_address)
 
-dist <- parallel::mclapply(p1s, get_mi, y = cpd_lon_lat, mc.cores = 3L) %>%
-  do.call(rbind, .)
+# QUESTION:
+# - add in a buffer for 2007 and 2017? how do we deal with calendar vs academic year?
+
+
 
