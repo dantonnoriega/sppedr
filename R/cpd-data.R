@@ -59,6 +59,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 
     cpd_crime <- cpd_crime %>%
+      dplyr::mutate(year = as.integer(year)) %>%
       tibble::as_tibble()
 
     return(cpd_crime)

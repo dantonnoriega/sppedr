@@ -1,6 +1,9 @@
 main_dir = get_main_dir()
-s <- sprintf('PWD=$(pwd) && cd bin && make cps-school-year SPPED_MAIN_DIR=%s && cd $PWD', main_dir)
-system(s)
+
+if(.Platform$OS.type!="windows") {
+  s <- sprintf('PWD=$(pwd) && cd bin && make cps-school-year SPPED_MAIN_DIR=%s && cd $PWD', main_dir)
+  system(s)
+}
 
 data_dir = file.path(main_dir, "RawData/Chicago_Crime/")
 

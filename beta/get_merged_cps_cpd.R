@@ -35,7 +35,7 @@ get_crime_counts <- function(x, y, yr) {
   z <- x %>%
     dplyr::filter(year == yr) %>%
     dplyr::mutate(year = as.integer(year)) %>%
-    dplyr::select(-lat, -lon) # drop lat lon, attach later
+    dplyr::select(-lat, -lon, -year) # drop lat lon, attach later
 
   counts <- parallel::mclapply(u, get_mi, y = y, yr = yr, mc.cores = CORES) %>%
     tibble::tibble(df = .)
@@ -74,10 +74,30 @@ cps <- dplyr::bind_rows(cps_address, cps2017) %>%
   dplyr::arrange(schoolidr_c_d_t_s, year)
 
 # estimate crimes within distance
-dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps_address)
+system.time(
+  dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps)
+)
+names(dats) <- 2008:2017
 
-# QUESTION:
-# - add in a buffer for 2007 and 2017? how do we deal with calendar vs academic year?
+# add on security data
+cps_personnel %>%
+  dplyr::left_join(., cps_crosswalk, by = 'unit_number') %>%
+  dplyr::mutate(job_description = gsub('school ', '', job_description)) %>%
+  dplyr::mutate(job_description = gsub('[[:space:]]', '_', job_description)) %>%
+  dplyr::filter(!is.na(schoolidr_c_d_t_s)) %>%
+  tidyr::spread(job_description, n) %>%
+  dplyr::mutate_if(is.integer, dplyr::funs(replace(., is.na(.), 0))) %>% # replace NAs with 0
+  dplyr::select(-unit_number, -abbreviated_name) %>%
+  dplyr::mutate(year = as.integer(year)) %>%
+  I() -> personnel
+
+
+full <- lapply(dats, function(x) dplyr::left_join(x, personnel, by = c('schoolidr_c_d_t_s', 'year')))
+
+# export
+outputs <- paste0("merged_cpd_cps_", 2008:2017, ".csv")
+for(i in seq_along(full)) data.table::fwrite(full[[i]], file.path(get_main_dir(), "Data", outputs[i]), logicalAsInt = TRUE)
+
 
 
 
