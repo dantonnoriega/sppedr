@@ -1,0 +1,73 @@
+---
+output:
+  github_document:
+    html_preview: false
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  echo = TRUE,
+  cache = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+```
+
+# Installation
+
+## Get a Personal Access Token (PAT)
+
+A personal access token (PAT) is required to install this repository. Got to [github.com/settings/tokens](https://github.com/settings/tokens) and generate a new token. Select the `repo` option to have access to private repos. Make sure you copy it to your clipboard. Set this to the environmental variable `GITHUB_PAT`.
+
+
+```
+Sys.setenv(GITHUB_PAT = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX") # paste access token here in quotes
+```
+
+## Install `sppedr`
+
+```
+install.packages('devtools') # install devtools if needed
+devtools::install_github("dantonnoriega/sppedr") # install the package
+```
+
+# Package Datasets
+
+The package, when loaded, also attaches the following datasets. These data sets can be called directly once you have loaded `library(sppedr)`.
+
+
+## Example: `cps_address` dataset
+
+```{r cps_address, warning=FALSE, message=FALSE, echo=TRUE, eval=TRUE}
+cps_address
+```
+
+# Functions
+
+The following functions, in order of usefulness, are available:
+
+
+
+## Example: Extracting and combining data from July 14 - 16, 2016
+
+```{r example, warning=FALSE, message=FALSE, echo=TRUE, eval=TRUE}
+
+library(sppedr)
+library(magrittr) # for piping %>%
+
+```
+
+This can also be done in a single pipe.
+
+```{r onepipe, warning=FALSE, message=FALSE, echo=TRUE, eval=FALSE}
+
+
+```
+
+# Other Info
+
+In the [package directory `data-raw`](https://github.com/dantonnoriega/sppedr/tree/master/data-raw), there is a `README.txt` file that explains where all the internal datasets come from and/or how they are built. Scripts that build most of these data are also in `data-raw`. Note that this directory is accessible via the github repo, not the package itself.
+
