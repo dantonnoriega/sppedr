@@ -20,14 +20,20 @@ sy <- psv[[1]] %>%
   tibble::rownames_to_column() %>%
   setNames(c("sy", "start", "end")) %>%
   dplyr::mutate_at(.vars = dplyr::vars(start, end), as.Date, format = "%m-%d-%y") %>%
-  tibble::as_tibble()
+  tibble::as_tibble() %>%
+  dplyr::mutate(summer = dplyr::lead(start)) %>%
+  dplyr::mutate(school_year = as.integer(lubridate::year(end)))
+
+sy$summer[nrow(sy)] <- fast.as.Date('2017-09-04')
 
 # off days
 off <- psv[[2]] %>%
   setNames(tolower(names(.))) %>%
   dplyr::mutate(date = ISOdate(year, month, day, 0, 0, 0) %>% as.Date) %>%
   dplyr::select(sy, date, reason, dplyr::everything()) %>%
-  tibble::as_tibble()
+  tibble::as_tibble() %>%
+  dplyr::mutate(school_year = as.integer(gsub('.*(\\d{2})$', '20\\1', sy))) %>%
+  dplyr::mutate(calendar_year = year)
 
 cps_school_year <- list(school_year = sy, days_off = off)
 

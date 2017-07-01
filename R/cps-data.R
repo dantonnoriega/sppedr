@@ -50,7 +50,8 @@ get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force 
 
     cps_address <- dplyr::left_join(addr, geo_full, by = 'address_full') %>%
       dplyr::select(schoolidr_c_d_t_s, schoolname, year, address, lat, lon, charter, ever_address_change, address_full) %>%
-      dplyr::mutate(year = as.integer(year))
+      dplyr::mutate(year = as.integer(year)) %>%
+      dplyr::rename(school_year = year)
 
     cps_addresses <- cps_address
 
@@ -102,7 +103,8 @@ get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), forc
     cps_2008_2016 <- haven::read_dta(files[indx]) %>%
       dplyr::mutate_if(is.character, trimws) %>%
       dplyr::left_join(., addr, by = c('schoolidr_c_d_t_s', 'year')) %>%
-      dplyr::mutate(year = as.integer(year))
+      dplyr::mutate(year = as.integer(year)) %>%
+      dplyr::rename(school_year = year)
 
     devtools::use_data(cps_2008_2016, overwrite = TRUE, compress = 'bzip2')
 
@@ -218,7 +220,8 @@ get_cps_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/
       dplyr::summarize(n = n()) %>%
       dplyr::arrange(year, unit_number, job_description) %>%
       dplyr::ungroup() %>%
-      dplyr::mutate(year = as.integer(year))
+      dplyr::mutate(year = as.integer(year)) %>%
+      dplyr::rename(school_year = year)
 
     devtools::use_data(cps_personnel, overwrite = TRUE, compress = 'bzip2')
 

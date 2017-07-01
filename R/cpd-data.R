@@ -20,7 +20,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     # get dates and filter out dates prior to 2007
     cpd_crime <- cpd_crime %>%
       .[, `:=`(ymd = fast.as.IDate(date, format = "%m/%d/%Y %H:%M:%S %p"), hms = fast.as.ITime(date, format = "%m/%d/%Y %H:%M:%S %p"))] %>%
-      .[ymd > as.IDate("2007-01-01")]
+      .[ymd > fast.as.IDate("2007-01-01")]
 
     data.table::setkey(cpd_crime, ymd, hms)
 
@@ -35,12 +35,20 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     sy <- cps_school_year$school_year
     st <- sy$start
     ed <- sy$end
+    sm <- sy$summer
+    yr <- sy$school_year
 
     ## off days
     off <- cps_school_year$days_off$date
 
     # during school year
-    invisible(mapply(function(.x, .y) cpd_crime[data.table::between(ymd, .x, .y), during_school_year := 1] %>% .[is.na(during_school_year), during_school_year := 0], .x = st, .y = ed, SIMPLIFY = FALSE))
+    invisible(mapply(function(.x, .y, .u, .v) {
+      cpd_crime %>%
+        .[data.table::between(ymd, .x, .y), during_school_year := 1] %>% # mark during SY
+        .[is.na(during_school_year), during_school_year := 0] %>% # update
+        .[data.table::between(ymd, .x, .u), school_year := .v] %>% # mark the SY
+        '['()
+      }, .x = st, .y = ed, .u = sm, .v = yr, SIMPLIFY = FALSE))
 
     # days off
     cpd_crime[, day_off_school_year := 0 + and(ymd %in% off, during_school_year == 1)]
@@ -60,6 +68,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
 
     cpd_crime <- cpd_crime %>%
       dplyr::mutate(year = as.integer(year)) %>%
+      dplyr::rename(calendar_year = year) %>%
       tibble::as_tibble()
 
     return(cpd_crime)
