@@ -1,8 +1,10 @@
 # functions
 get_mi <- function(x, y, yr) {
 
+  print(x)
+
   y <- y %>%
-    dplyr::filter(year == yr)
+    dplyr::filter(school_year == yr)
 
   v <- y %>%
     dplyr::select(lon, lat) %>% # order matters
@@ -13,7 +15,7 @@ get_mi <- function(x, y, yr) {
 
   z <- dplyr::bind_cols(y, dist = d) %>%
     dplyr::mutate(mi_qtr = d <= 0.25, mi_half = d <= 0.5) %>%
-    dplyr::group_by(crime_type, year, during_school_year, day_off_school_year, weekday, day_hours) %>%
+    dplyr::group_by(crime_type, school_year, during_school_year, day_off_school_year, weekday, day_hours) %>%
     dplyr::summarize(mi_qtr = sum(mi_qtr), mi_half = sum(mi_half))
 
   return(z)
@@ -23,19 +25,19 @@ get_mi <- function(x, y, yr) {
 # get distance
 get_crime_counts <- function(x, y, yr) {
 
-  CORES <- parallel::detectCores() - 1
+  CORES <- parallel::detectCores()
 
   u <- x %>%
-    dplyr::filter(year == yr) %>%
+    dplyr::filter(school_year == yr) %>%
     dplyr::select(lon, lat) %>%
     as.matrix() %>%
     apply(., 1, list) %>%
     lapply(., '[[', 1)
 
   z <- x %>%
-    dplyr::filter(year == yr) %>%
-    dplyr::mutate(year = as.integer(year)) %>%
-    dplyr::select(-lat, -lon, -year) # drop lat lon, attach later
+    dplyr::filter(school_year == yr) %>%
+    dplyr::mutate(school_year = as.integer(school_year)) %>%
+    dplyr::select(-lat, -lon, -school_year) # drop lat lon, attach later
 
   counts <- parallel::mclapply(u, get_mi, y = y, yr = yr, mc.cores = CORES) %>%
     tibble::tibble(df = .)
@@ -67,15 +69,15 @@ cpd <- cpd_crime %>%
 
 # assume 2016 is calendar year. school year goes into 2017 calendar, so we add these data
 cps2017 <- cps_address %>%
-  dplyr::filter(year == 2016) %>% # carry forward 2016 data to 2017
-  dplyr::mutate(year = 2017)
+  dplyr::filter(school_year == 2016) %>% # carry forward 2016 data to 2017
+  dplyr::mutate(school_year = 2017)
 
 cps <- dplyr::bind_rows(cps_address, cps2017) %>%
-  dplyr::arrange(schoolidr_c_d_t_s, year)
+  dplyr::arrange(schoolidr_c_d_t_s, school_year)
 
 # estimate crimes within distance
 system.time(
-  dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps)
+  dats <- lapply(2008:2009, get_crime_counts, y = cpd, x = cps)
 )
 names(dats) <- 2008:2017
 
@@ -88,11 +90,11 @@ cps_personnel %>%
   tidyr::spread(job_description, n) %>%
   dplyr::mutate_if(is.integer, dplyr::funs(replace(., is.na(.), 0))) %>% # replace NAs with 0
   dplyr::select(-unit_number, -abbreviated_name) %>%
-  dplyr::mutate(year = as.integer(year)) %>%
+  dplyr::mutate(school_year = as.integer(school_year)) %>%
   I() -> personnel
 
 
-full <- lapply(dats, function(x) dplyr::left_join(x, personnel, by = c('schoolidr_c_d_t_s', 'year')))
+full <- lapply(dats, function(x) dplyr::left_join(x, personnel, by = c('schoolidr_c_d_t_s', 'school_year')))
 
 # export
 outputs <- paste0("merged_cpd_cps_", 2008:2017, ".csv")
