@@ -64,12 +64,12 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     # merge cpd_crime_codes
     cpd_crime <- data.table:::merge.data.table(cpd_crime, cpd_crime_codes$fbi, by = 'fbi_code', all.x = TRUE)
 
-    data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
-
     cpd_crime <- cpd_crime %>%
       dplyr::mutate(year = as.integer(year)) %>%
       dplyr::rename(calendar_year = year) %>%
       tibble::as_tibble()
+
+    data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 
     return(cpd_crime)
 
@@ -78,7 +78,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
     tiny <- data.table::fread(file.path(get_main_dir(), "Data", "cpd_crime.csv"), encoding="UTF-8", nrows = 5)
     nms  <- names(tiny)
     nc   <- ncol(tiny)
-    int  <- c("arrest", "domestic", "beat", "district", "ward", "community_area", "year", "lat", "lon", "during_school_year", "day_off_school_year", "weekday", "dow", "hour", "day_hours") # integer cols
+    int  <- c("arrest", "domestic", "beat", "district", "ward", "community_area", "calendar_year", "school_year", "lat", "lon", "during_school_year", "day_off_school_year", "weekday", "dow", "hour", "day_hours") # integer cols
     indx <- which(nms %in% int)
 
     # set col classes
