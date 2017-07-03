@@ -77,7 +77,7 @@ cps <- dplyr::bind_rows(cps_address, cps2017) %>%
 
 # estimate crimes within distance
 system.time(
-  dats <- lapply(2008:2009, get_crime_counts, y = cpd, x = cps)
+  dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps)
 )
 names(dats) <- 2008:2017
 
