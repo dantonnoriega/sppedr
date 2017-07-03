@@ -1,8 +1,6 @@
 # functions
 get_mi <- function(x, y, yr) {
 
-  print(x)
-
   y <- y %>%
     dplyr::filter(school_year == yr)
 
@@ -25,6 +23,8 @@ get_mi <- function(x, y, yr) {
 # get distance
 get_crime_counts <- function(x, y, yr) {
 
+  message(sprintf('computing year %s...', yr))
+
   CORES <- parallel::detectCores()
 
   u <- x %>%
@@ -36,7 +36,6 @@ get_crime_counts <- function(x, y, yr) {
 
   z <- x %>%
     dplyr::filter(school_year == yr) %>%
-    dplyr::mutate(school_year = as.integer(school_year)) %>%
     dplyr::select(-lat, -lon, -school_year) # drop lat lon, attach later
 
   counts <- parallel::mclapply(u, get_mi, y = y, yr = yr, mc.cores = CORES) %>%
@@ -47,7 +46,8 @@ get_crime_counts <- function(x, y, yr) {
     tibble::as_tibble() %>%
     dplyr::bind_cols(., counts) %>%
     dplyr::bind_cols(z, .) %>%
-    tidyr::unnest(df)
+    tidyr::unnest(df) %>%
+    dplyr::mutate(school_year = as.integer(school_year))
 
   return(dist_df)
 
@@ -76,9 +76,7 @@ cps <- dplyr::bind_rows(cps_address, cps2017) %>%
   dplyr::arrange(schoolidr_c_d_t_s, school_year)
 
 # estimate crimes within distance
-system.time(
-  dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps)
-)
+dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps)
 names(dats) <- 2008:2017
 
 # add on security data
