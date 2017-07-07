@@ -8,26 +8,17 @@ output:
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(
+  warning = FALSE,
+  message = FALSE,
   collapse = TRUE,
   echo = TRUE,
-  cache = TRUE,
+  cache = FALSE,
   comment = "#>",
   fig.path = "README-"
 )
 ```
 
 # Installation
-
-## Get a Personal Access Token (PAT)
-
-A personal access token (PAT) is required to install this repository. Got to [github.com/settings/tokens](https://github.com/settings/tokens) and generate a new token. Select the `repo` option to have access to private repos. Make sure you copy it to your clipboard. Set this to the environmental variable `GITHUB_PAT`.
-
-
-```
-Sys.setenv(GITHUB_PAT = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX") # paste access token here in quotes
-```
-
-## Install `sppedr`
 
 ```
 install.packages('devtools') # install devtools if needed
@@ -37,6 +28,10 @@ devtools::install_github("dantonnoriega/sppedr") # install the package
 # Package Datasets
 
 The package, when loaded, also attaches the following datasets. These data sets can be called directly once you have loaded `library(sppedr)`.
+
+```{r data-sppedr, warning=FALSE, message=FALSE, echo=FALSE, eval=TRUE}
+code
+```
 
 
 ## Example: `cps_address` dataset

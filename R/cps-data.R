@@ -53,10 +53,7 @@ get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force 
       dplyr::mutate(year = as.integer(year)) %>%
       dplyr::rename(school_year = year)
 
-    cps_addresses <- cps_address
-
     devtools::use_data(cps_address, overwrite = TRUE)
-    devtools::use_data(cps_addresses, overwrite = TRUE)
 
     return(cps_address)
 
@@ -75,10 +72,10 @@ get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force 
 
 }
 
-#' get chicago public school data
-#' @inheritParams get_cps_address
-#' @export
-get_cps_addresses <- get_cps_address
+# #' get chicago public school data
+# #' @inheritParams get_cps_address
+# #' @export
+# get_cps_addresses <- get_cps_address
 
 
 #' get chicago public school data
