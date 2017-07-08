@@ -56,7 +56,7 @@ get_crime_counts <- function(x, y, yr) {
 # load data
 
 devtools::load_all("/Users/danton/GitHub/sppedr")
-cpd_crime <- get_cpd_crime()
+cpd_crime <- get_cpd_crime(force = TRUE, replace = TRUE)
 
 # missing rate of lat/lon
 pct <- sum(is.na(cpd_crime$lat))/nrow(cpd_crime) * 100

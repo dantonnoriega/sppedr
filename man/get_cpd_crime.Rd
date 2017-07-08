@@ -5,7 +5,7 @@
 \title{get chicago public school data}
 \usage{
 get_cpd_crime(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"),
-  force = FALSE)
+  force = FALSE, replace = FALSE)
 }
 \arguments{
 \item{data_dir}{path to data folder.}

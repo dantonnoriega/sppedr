@@ -4,7 +4,7 @@
 #' @param replace replace existing package data with new import.
 #' @export
 
-get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"), force = FALSE) {
+get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"), force = FALSE, replace = FALSE) {
 
   # data_dir = "~/Dropbox/ra-work/spped/Data/"
   # cat(sprintf("DEV LINE: data_dir = %s", data_dir))

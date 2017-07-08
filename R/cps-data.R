@@ -124,18 +124,18 @@ get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), forc
 }
 
 #' get chicago public school data. REQUIRES DATA CLEANED BY SCRIPT `bin/clean-cps-personnel.sh`.
-#' @param raw_data_dir path to raw data folder.
+#' @param data_dir path to data directory
 #' @param force force a full import.
 #' @param replace replace existing package data with new import.
 #' @export
 
-get_cps_security_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/CPS_Personnel/cooked"), force = FALSE, replace = FALSE) {
+get_cps_security_personnel <- function(data_dir = file.path(get_main_dir(), "RawData/CPS_Personnel/cooked"), force = FALSE, replace = FALSE) {
 
   if(force) {
 
-    stopifnot(dir.exists(raw_data_dir))
-    raw_data_dir <- normalizePath(raw_data_dir)
-    files <- list.files(raw_data_dir, full.names = TRUE)
+    stopifnot(dir.exists(data_dir))
+    data_dir <- normalizePath(data_dir)
+    files <- list.files(data_dir, full.names = TRUE)
 
     # txt and csv
     txt_files <- files[grepl('\\.txt', basename(files))] %>%
@@ -146,7 +146,7 @@ get_cps_security_personnel <- function(raw_data_dir = file.path(get_main_dir(), 
 
     # get data years
     txt_yrs <- stringr::str_extract(txt_files, '20[01][123890]')
-    csv_yrs <- stringr::str_extract(csv_files, '20[01][56]')
+    csv_yrs <- stringr::str_extract(csv_files, '20[0-9]{2}')
 
     # parse txt
     txt_cols <- c('position_number', 'budget_category', 'unit_number', 'other')
@@ -163,11 +163,23 @@ get_cps_security_personnel <- function(raw_data_dir = file.path(get_main_dir(), 
       dplyr::mutate_if(is.character, tolower)
 
     # parse csv
-    csv_cols <- c("position_number","unit_number","unit_name","fte","annual_salary","fte_annual_salary","annual_benefit_cost","job_code","job_description","employee_name")
-    csv <- csv_files %>%
+    csv_cols2017 <- c("position_number","unit_number","unit_name","fte", "clsindc", "annual_salary","fte_annual_salary","annual_benefit_cost","job_code","job_description","employee_name")
+    csv_cols <- csv_cols2017[!csv_cols2017 %in% "clsindc"]
+
+    # 2015 and 2016
+    csv1 <- csv_files[csv_yrs %in% as.character(2015:2016)] %>%
       purrr::map(.x = ., .f = readr::read_csv, col_names = csv_cols, col_type = paste(rep('c', length(csv_cols)), collapse = ""), trim_ws = TRUE) %>%
       purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, gsub, pattern = '[[:space:]]+', replacement = ' ')) %>%
       purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, tolower))
+
+    # 2017 year
+    csv2 <- csv_files[!csv_yrs %in% as.character(2015:2016)] %>%
+      purrr::map(.x = ., .f = readr::read_csv, col_names = csv_cols2017, col_type = paste(rep('c', length(csv_cols2017)), collapse = ""), trim_ws = TRUE) %>% # use csv_cols2017
+      purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, gsub, pattern = '[[:space:]]+', replacement = ' ')) %>%
+      purrr::map(.x = ., .f = ~dplyr::mutate_if(.x, is.character, tolower)) %>%
+      purrr::map(.x = ., .f = ~dplyr::select(.x, -clsindc)) # drop clsindc
+
+    csv <- append(csv1, csv2)
 
     # add year variable to datasets so we can stack
     txt <- purrr::map2(.x = txt, .y = txt_yrs, .f = ~dplyr::mutate(.x, year = .y))
@@ -235,7 +247,7 @@ get_cps_security_personnel <- function(raw_data_dir = file.path(get_main_dir(), 
       load('data/cps_security_personnel.rda')
       return(cps_security_personnel)
     } else {
-      get_cps_personnel(raw_data_dir, force = TRUE)
+      get_cps_personnel(data_dir, force = TRUE)
     }
   }
 

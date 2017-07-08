@@ -4,11 +4,11 @@
 \alias{get_cps_security_personnel}
 \title{get chicago public school data. REQUIRES DATA CLEANED BY SCRIPT `bin/clean-cps-personnel.sh`.}
 \usage{
-get_cps_security_personnel(raw_data_dir = file.path(get_main_dir(),
+get_cps_security_personnel(data_dir = file.path(get_main_dir(),
   "RawData/CPS_Personnel/cooked"), force = FALSE, replace = FALSE)
 }
 \arguments{
-\item{raw_data_dir}{path to raw data folder.}
+\item{data_dir}{path to data directory}
 
 \item{force}{force a full import.}
 

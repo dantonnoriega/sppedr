@@ -38,8 +38,8 @@ do
     sed -n -E "/[^(vacant)]/Ip" > $OUTDIR/${i}
 done
 
-# 2015 - 2016.
-F4=$(ls $RAW_DATA/CPS_Personnel/ | grep csv | egrep 20[1][56])
+# 2015 - present.
+F4=$(ls $RAW_DATA/CPS_Personnel/ | grep csv)
 for i in $F4
 do
     sed -n -E "/security/Ip" $RAW_DATA/CPS_Personnel/${i} |
