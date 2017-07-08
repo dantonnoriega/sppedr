@@ -4,7 +4,7 @@
 \alias{set_main_dir}
 \title{Get main dir}
 \usage{
-set_main_dir()
+set_main_dir(path = NULL)
 }
 \description{
 Get main dir

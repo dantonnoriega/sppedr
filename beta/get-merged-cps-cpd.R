@@ -80,7 +80,7 @@ dats <- lapply(2008:2017, get_crime_counts, y = cpd, x = cps)
 names(dats) <- 2008:2017
 
 # add on security data
-cps_personnel %>%
+cps_security_personnel %>%
   dplyr::left_join(., cps_crosswalk, by = 'unit_number') %>%
   dplyr::mutate(job_description = gsub('school ', '', job_description)) %>%
   dplyr::mutate(job_description = gsub('[[:space:]]', '_', job_description)) %>%

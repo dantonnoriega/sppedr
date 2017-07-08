@@ -11,12 +11,18 @@ tools_main_dir <- function() {
 
   }
 
-  set = function() {
-    # have user input main_dir
-    message("Please enter the path to your SPPED directory, and press enter:")
-    main_dir <- readline(": ")
+  set = function(path = NULL) {
 
-    main_dir <- normalizePath(main_dir)
+    if(!is.null(path)) {
+      main_dir <- path
+    } else {
+      # have user input main_dir
+      message("Please enter the path to your SPPED directory, and press enter:")
+      main_dir <- readline(": ")
+
+      main_dir <- normalizePath(main_dir)
+    }
+
 
     stopifnot(dir.exists(main_dir))
 

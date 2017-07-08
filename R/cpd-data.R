@@ -1,13 +1,14 @@
 #' get chicago public school data
 #' @param data_dir path to data folder.
 #' @param force force a full import.
+#' @param replace replace existing package data with new import.
 #' @export
 
-get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"), import = FALSE) {
+get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_Crime/"), force = FALSE) {
 
   # data_dir = "~/Dropbox/ra-work/spped/Data/"
   # cat(sprintf("DEV LINE: data_dir = %s", data_dir))
-  if(import) {
+  if(force) {
 
     stopifnot(dir.exists(data_dir))
     data_dir <- normalizePath(data_dir)
@@ -69,7 +70,7 @@ get_cpd_crime <- function(data_dir = file.path(get_main_dir(), "RawData/Chicago_
       dplyr::rename(calendar_year = year) %>%
       tibble::as_tibble()
 
-    data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
+    if(replace) data.table::fwrite(cpd_crime, file.path(get_main_dir(), "Data", "cpd_crime.csv"), logicalAsInt = TRUE)
 
     return(cpd_crime)
 

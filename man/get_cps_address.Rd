@@ -4,12 +4,15 @@
 \alias{get_cps_address}
 \title{get chicago public school data}
 \usage{
-get_cps_address(data_dir = file.path(get_main_dir(), "Data"), force = FALSE)
+get_cps_address(data_dir = file.path(get_main_dir(), "Data"), force = FALSE,
+  replace = FALSE)
 }
 \arguments{
 \item{data_dir}{path to data folder.}
 
 \item{force}{force a full import.}
+
+\item{replace}{replace existing package data with new import.}
 }
 \description{
 get chicago public school data

@@ -3,9 +3,10 @@
 #' @importFrom magrittr %>%
 #' @param data_dir path to data folder.
 #' @param force force a full import.
+#' @param replace replace existing package data with new import.
 #' @export
 
-get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force = FALSE) {
+get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force = FALSE, replace = FALSE) {
 
   # data_dir = "~/Dropbox/ra-work/spped/Data/"
   # cat(sprintf("DEV LINE: data_dir = %s", data_dir))
@@ -53,7 +54,7 @@ get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force 
       dplyr::mutate(year = as.integer(year)) %>%
       dplyr::rename(school_year = year)
 
-    devtools::use_data(cps_address, overwrite = TRUE)
+    if(replace) devtools::use_data(cps_address, overwrite = TRUE)
 
     return(cps_address)
 
@@ -82,7 +83,7 @@ get_cps_address <- function(data_dir = file.path(get_main_dir(), "Data"), force 
 #' @inheritParams get_cps_address
 #' @export
 
-get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), force = FALSE) {
+get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), force = FALSE, replace = FALSE) {
 
   if(force) {
 
@@ -103,7 +104,7 @@ get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), forc
       dplyr::mutate(year = as.integer(year)) %>%
       dplyr::rename(school_year = year)
 
-    devtools::use_data(cps_2008_2016, overwrite = TRUE, compress = 'bzip2')
+    if(replace) devtools::use_data(cps_2008_2016, overwrite = TRUE, compress = 'bzip2')
 
     return(cps_2008_2016)
 
@@ -125,9 +126,10 @@ get_cps_2008_2016 <- function(data_dir = file.path(get_main_dir(), "Data"), forc
 #' get chicago public school data. REQUIRES DATA CLEANED BY SCRIPT `bin/clean-cps-personnel.sh`.
 #' @param raw_data_dir path to raw data folder.
 #' @param force force a full import.
+#' @param replace replace existing package data with new import.
 #' @export
 
-get_cps_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/CPS_Personnel/cooked"), force = FALSE) {
+get_cps_security_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/CPS_Personnel/cooked"), force = FALSE, replace = FALSE) {
 
   if(force) {
 
@@ -212,7 +214,7 @@ get_cps_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/
       dplyr::mutate_all(as.character)
 
     # stack all and summarize
-    cps_personnel <- dplyr::bind_rows(txt, txt14, csv) %>%
+    cps_security_personnel <- dplyr::bind_rows(txt, txt14, csv) %>%
       dplyr::group_by(unit_number, job_description, year) %>%
       dplyr::summarize(n = n()) %>%
       dplyr::arrange(year, unit_number, job_description) %>%
@@ -220,18 +222,18 @@ get_cps_personnel <- function(raw_data_dir = file.path(get_main_dir(), "RawData/
       dplyr::mutate(year = as.integer(year)) %>%
       dplyr::rename(school_year = year)
 
-    devtools::use_data(cps_personnel, overwrite = TRUE, compress = 'bzip2')
+    if(replace) devtools::use_data(cps_security_personnel, overwrite = TRUE, compress = 'bzip2')
 
-    return(cps_personnel)
+    return(cps_security_personnel)
 
   } else {
     # check for data
-    rda <- 'data/cps_personnel.rda'
+    rda <- 'data/cps_security_personnel.rda'
 
     # if exists, load, otherwise, import using force
-    if(file.exists('data/cps_personnel.rda')) {
-      load('data/cps_personnel.rda')
-      return(cps_personnel)
+    if(file.exists('data/cps_security_personnel.rda')) {
+      load('data/cps_security_personnel.rda')
+      return(cps_security_personnel)
     } else {
       get_cps_personnel(raw_data_dir, force = TRUE)
     }

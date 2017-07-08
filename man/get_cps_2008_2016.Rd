@@ -5,12 +5,14 @@
 \title{get chicago public school data}
 \usage{
 get_cps_2008_2016(data_dir = file.path(get_main_dir(), "Data"),
-  force = FALSE)
+  force = FALSE, replace = FALSE)
 }
 \arguments{
 \item{data_dir}{path to data folder.}
 
 \item{force}{force a full import.}
+
+\item{replace}{replace existing package data with new import.}
 }
 \description{
 get chicago public school data
