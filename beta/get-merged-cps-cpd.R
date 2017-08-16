@@ -1,5 +1,5 @@
 # functions
-get_mi <- function(x, y, yr) {
+get_miles <- function(x, y, yr) {
 
   y <- y %>%
     dplyr::filter(school_year == yr)
@@ -38,7 +38,7 @@ get_crime_counts <- function(x, y, yr) {
     dplyr::filter(school_year == yr) %>%
     dplyr::select(-lat, -lon, -school_year) # drop lat lon, attach later
 
-  counts <- parallel::mclapply(u, get_mi, y = y, yr = yr, mc.cores = CORES) %>%
+  counts <- parallel::mclapply(u, get_miles, y = y, yr = yr, mc.cores = CORES) %>%
     tibble::tibble(df = .)
 
     # bind values

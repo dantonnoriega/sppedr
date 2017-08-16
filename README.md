@@ -12,15 +12,15 @@ Prerequisites
 This package assumes you have access to a directory with the following files and structure
 
     spped
-    NA
-    NA
-    NA
+    └── Data
+        ├── cps_2008_2016.dta
+        ├── cps_address_2008_2016.dta
         RawData
-    NA
-    NA
-    NA
-    NA
-    NA
+        ├── CPS_Personnel
+        ├── Chicago_Crime
+        ├── Crosswalks
+        ├── ISBE_Directories
+        └── ISBE_School_Data
 
 The directory `spped` is considered the data "main directory" (or `main_dir`) by the package. Wherever this is located on your computer, ensure the package knows where it is by running the `set_main_dir()` command.
 
